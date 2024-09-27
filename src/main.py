@@ -6,4 +6,3 @@ app = FastAPI()
 
 app.include_router(router_orders)
 app.include_router(router_products)
-b = 234
