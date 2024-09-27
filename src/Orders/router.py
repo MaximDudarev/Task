@@ -12,7 +12,7 @@ router = APIRouter(
     tags=["orders"]
 )
 
-@router.get('/', response_model=OrdersWithItems) # , response_model=OrdersResponseGet
+@router.get('/', response_model=OrdersResponseGet)
 async def get_all_orders(page: int = 1, session: AsyncSession = Depends(get_async_session)):
     skip = (page - 1) * 10
     limit = 10
@@ -27,21 +27,30 @@ async def get_all_orders(page: int = 1, session: AsyncSession = Depends(get_asyn
     orders_with_items = result.all()
 
     return {'status': 'success',
-            'data': [{'id':order.id,
-                      'status': order.status,
-                      'create_at': order.create_at,
-                      'id_product': id_product,
-                      'count': count
-                      } for order, id_product, count in orders_with_items]}
+            'data': [OrdersWithItems(id=order.id,
+                      status= order.status,
+                      create_at= order.create_at,
+                      id_product= id_product,
+                      count= count
+                      ) for order, id_product, count in orders_with_items]}
 
 @router.get('/{total_id}', response_model=OrdersResponseGet)
 async def get_orders_on_id(total_id: int, session: AsyncSession = Depends(get_async_session)):
-    query = select(Orders).where(Orders.id == total_id)
+    query = (
+        select(Orders, OrdersItems.id_products, OrdersItems.count)
+        .join(OrdersItems, OrdersItems.id_orders == Orders.id)
+        .where(Orders.id == total_id)
+    )
     result = await session.execute(query)
-    orders = result.scalars().all()
-    if not orders:
+    orders_with_items = result.all()
+    if not orders_with_items:
         raise HTTPException(status_code=404, detail={'status': 'error', 'data': 'Order not found'})
-    return {'status': 'success', 'data': orders}
+    return {'status': 'success', 'data': [OrdersWithItems(id=order.id,
+                      status= order.status,
+                      create_at= order.create_at,
+                      id_product= id_product,
+                      count= count
+                      ) for order, id_product, count in orders_with_items]}
 
 
 

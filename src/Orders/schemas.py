@@ -23,7 +23,7 @@ class OrdersWithItems(SQLModel):
     id: int = Field(default=None, primary_key=True)
     status: Status
     create_at: datetime = Field(sa_column=Column(server_default=text("TIMEZONE('utc', now())")))
-    id_products: int
+    id_product: int
     count: int
 
 class OrdersResponseGet(SQLModel):
