@@ -2,9 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, insert, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
 from src.Orders.models import Orders, OrdersItems
-from src.Orders.schemas import OrdersUpdate, OrdersResponseGet,  OrdersCreate
+from src.Orders.schemas import OrdersUpdate, OrdersResponseGet, OrdersCreate, OrdersWithItems
 from src.Products.models import Products
 from src.database import get_async_session
 
@@ -13,14 +12,27 @@ router = APIRouter(
     tags=["orders"]
 )
 
-@router.get('/', response_model=OrdersResponseGet)
+@router.get('/', response_model=OrdersWithItems) # , response_model=OrdersResponseGet
 async def get_all_orders(page: int = 1, session: AsyncSession = Depends(get_async_session)):
     skip = (page - 1) * 10
     limit = 10
-    query = select(Orders).offset(skip).limit(limit).order_by(Orders.id)
+    query = (
+        select(Orders, OrdersItems.id_products, OrdersItems.count)
+        .join(OrdersItems, OrdersItems.id_orders == Orders.id)
+        .offset(skip)
+        .limit(limit)
+        .order_by(Orders.id)
+    )
     result = await session.execute(query)
-    orders = result.scalars().all()
-    return {'status': 'success', 'data': [order.__dict__ for order in orders]}
+    orders_with_items = result.all()
+
+    return {'status': 'success',
+            'data': [{'id':order.id,
+                      'status': order.status,
+                      'create_at': order.create_at,
+                      'id_product': id_product,
+                      'count': count
+                      } for order, id_product, count in orders_with_items]}
 
 @router.get('/{total_id}', response_model=OrdersResponseGet)
 async def get_orders_on_id(total_id: int, session: AsyncSession = Depends(get_async_session)):
