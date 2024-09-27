@@ -16,34 +16,25 @@ router = APIRouter(
 
 @router.get('/', response_model=ProductsResponseGet)
 async def get_all_products(session: AsyncSession = Depends(get_async_session)):
-    try:
-        query = select(Products).order_by(Products.id)
-        result = await session.execute(query)
-        products = result.scalars().all()
-        return {
-            'status': 'success',
-            'data': [product.__dict__ for product in products]
-        }
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail={'status': 'error',
-                    'data': None})
+
+    query = select(Products).order_by(Products.id)
+    result = await session.execute(query)
+    products = result.scalars().all()
+    return {
+        'status': 'success',
+        'data': [product.__dict__ for product in products]
+    }
 
 @router.get('/{total_id}', response_model=ProductsResponseGet)
 async def get_product_on_id(total_id: int, session: AsyncSession = Depends(get_async_session)):
-    try:
-        query = select(Products).where(Products.id==total_id)
-        result = await session.execute(query)
-        return {
-            'status': 'success',
-            'data': result.scalars().all()
-        }
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail={'status': 'error',
-                    'data': None})
+
+    query = select(Products).where(Products.id==total_id)
+    result = await session.execute(query)
+    return {
+        'status': 'success',
+        'data': result.scalars().all()
+    }
+
 
 @router.post('/')
 async def create_product(new_products: CreateProducts, session: AsyncSession = Depends(get_async_session)):
